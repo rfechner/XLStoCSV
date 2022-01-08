@@ -23,11 +23,20 @@
       </a>
 </header>
 <main class="bg-light rounded-3 px-3">
+    {% for message in get_flashed_messages() %}
+        <div class="alert alert-warning">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            {{ message }}
+        </div>
+    {% endfor %}
+
     <div class="container-fluid mb-3">
       <h1 class="display-5 fw-bold">XLStoCSV</h1>
       <p class="col-md-12 ps-0 fs-4">
           Tool for mapping excel data sheets to csv files.
       </p>
+
+
       <form class='pb-3' method="post" action="{{ url_for('api') }}">
         <div class="mb-3">
           {{ start_form.csrf_token }}
