@@ -3,7 +3,9 @@ import pandas as pd
 import os
 import zipfile
 
-from urllib.request import urlopen
+import requests
+
+from os import remove
 from io import BytesIO
 from flask import flash, Flask, request, render_template, send_file, url_for, redirect
 from flask_swagger_ui import get_swaggerui_blueprint
@@ -18,7 +20,6 @@ from werkzeug.utils import secure_filename
 from config import config
 
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
-
 config_name = os.environ.get("APP_MODE") or "development"
 
 app = Flask(__name__)
@@ -59,31 +60,42 @@ def api():
     if request.method == 'POST':
 
         url = request.form.get("data_url")
+        
         if not allowed_file(url):
             flash("cannot convert file with given extension!")
             return redirect(url_for("index"))
-
+        
+        # we need to access the raw file from github, without html code
+        if "github.com" in url:
+            url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+    
         filename = secure_filename(url.rsplit("/", maxsplit=1)[1])
+        
+        # write the file to local directory, the file is deleted again after conversion
+        response = requests.get(url)
+        output = open(filename, 'wb')
+        output.write(response.content)
+        output.close()
 
-        #TODO this throws since the url points to a website that cannot be found. (whyever)
-        # i tested this with https://github.com/rfechner/XLStoCSV/blob/main/examples/Z-Windrepair_Testproben1.xls
-        # the link seems to work, but the response is a 404
-        excel_file = pd.ExcelFile(urlopen(url))
+        excel_file = pd.ExcelFile(filename)
 
-        prefix = filename.removesuffix(".xls")
+        
         memory_file = BytesIO()
 
         # for each input file, create sheets, for each sheet, try to add csv to zipfile
 
         with zipfile.ZipFile(memory_file, 'w') as zf:
+
+            prefix = filename.replace(".xls", "")
+            
             for sheetname in excel_file.sheet_names:
 
                 try:
-                    df = excel_file.parse(sheet=sheetname)
+                    df = pd.read_excel(excel_file, sheetname)
                     plain_text = df.to_csv(index=False)
 
-                    filename = secure_filename(prefix + "_" + sheetname + ".csv")
-                    zf.writestr(zinfo_or_arcname=filename, data=plain_text)
+                    tmp = secure_filename(prefix + "_" + sheetname + ".csv")
+                    zf.writestr(zinfo_or_arcname=tmp, data=plain_text)
 
                 except:
                     # sometimes, excel sheets can't be turned into csv files,e.g. when
@@ -91,6 +103,12 @@ def api():
                     continue
 
         memory_file.seek(0)
+
+
+        # we're done with conversion, delete the local file.
+        excel_file.close()
+        remove(filename)
+
         return send_file(memory_file, attachment_filename='result.zip', as_attachment=True)
 
     return render_template("index.html")
