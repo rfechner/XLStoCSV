@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.0",
   "info":{
-      "description": "CSVtoCSVW",
+      "description": "XLStoCSV",
       "version": "1.0.0",
-      "title": "CSVtoCSVW",
+      "title": "XLStoCSV",
       "contact": {
           "name": "Thomas Hanke",
           "email": "thomas.hanke@imws.fraunhofer.de"
@@ -23,21 +23,17 @@
     "http"
   ],
   "paths": {
-    "/api/create_metafile": {
+    "/api/xls2csv": {
             "post": {
                 "tags": [
-                    "JSON-LD"
+                    "xls"
                 ],
-                "summary": "Create Meta JSON-LD",
-                "description": "Create a metafile for a csv file.",
+                "summary": "xls -> csvs",
+                "description": "Create a zipfile containing all sheets from a xls file as csv.",
                 "requestBody": {
                   "required": "true",
                   "content": {
-                    "application/json": {
-                      "schema": {
-                        "$ref": "#/components/schemas/Converter"
-                      }
-                    }
+
                   }
                 },
                 "produces": [
@@ -45,14 +41,8 @@
                 ],
                 "responses": {
                         "200": {
-                            "description": "converted csv-like file into JSON-LD metafile.",
-                            "content": {
-                              "application/json": {
-                                "schema": {
-                                  "$ref": "#/components/schemas/JSON-LD"
-                                }
-                              }
-                            }
+                            "description": "converted xls file into many csv files."
+
                           },
                         "404": {
                             "description": "File not found."
@@ -69,41 +59,7 @@
 
   "components" : {
     "schemas" : {
-      "Converter":{
-              "description": "Conversion object handling parsing of csv and metafile return",
-              "required": "true",
-              "type": "object",
-              "properties": {
-                "data_url":{
-                  "type": "string",
-                  "format": "uri",
-                  "description": "Url to raw csv"
-                },
-                "separator" : {
-                  "type" : "string",
-                  "default" : "auto"
-                },
-                "encoding" : {
-                  "type" : "string",
-                  "default" : "auto"
-                }
-              }
 
-              },
-      "JSON-LD": {
-        "description": "contains metadata about one csv file",
-        "type": "object",
-        "properties": {
-          "filename": {
-            "type": "string",
-            "description": "Suggested file name."
-          },
-          "filedata": {
-            "type": "string",
-            "description": "File content string."
-          }
-        }
-      }
     }
   },
   "securityDefinitions": {
@@ -115,15 +71,6 @@
   },
   "definitions": {
     "ApiResponse": {
-      "type": "object",
-      "properties": {
-        "filename": {
-          "type": "string"
-        },
-        "filedata": {
-          "type": "string"
-        }
-      }
     }
   }
 }
